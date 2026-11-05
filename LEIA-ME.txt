@@ -1,0 +1,25 @@
+VILA DOS GATINHOS — como publicar no GitHub Pages
+
+1. No GitHub, crie um repositório novo (por exemplo: vila-dos-gatinhos), público.
+2. Add file > Upload files: envie TODOS os arquivos desta pasta, soltos (sem pasta por fora).
+3. Commit.
+4. Settings > Pages > Branch: main, pasta: / (root) > Save.
+5. Espere 1 ou 2 minutos e abra: https://SEU-USUARIO.github.io/vila-dos-gatinhos/
+
+Para atualizar depois: envie de novo os arquivos que mudaram (com o mesmo nome) e faça commit.
+
+O progresso (mundos, construções, inventário, conquistas) fica salvo no navegador
+de cada aparelho. Nada é enviado para o GitHub nem para servidor.
+Se trocar o endereço do site, o navegador trata como outro lugar e começa do zero.
+
+Arquivos:
+- index.html ......... página do jogo
+- main.js ............ jogo (jogador, telas, poderes, aldeões, inventário)
+- blocos.js .......... blocos e texturas
+- itens.js ........... itens e receitas
+- arte.js ............ ícones em pixel art
+- mundo.js ........... geração do mundo e da vila
+- mobs.js ............ animais e monstros
+- som.js ............. sons
+- gato.js, gato_ele.js, gato_ela.js ... os gatinhos (os mesmos do Nosso Museu)
+- three.module.js, GLTFLoader.js, BufferGeometryUtils.js, RoomEnvironment.js ... motor 3D (three.js, licença MIT em LICENSE-three.txt)

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#1b1a1f">
+<title>Vila dos Gatinhos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--vidro:rgba(22,20,26,.66);--borda:rgba(255,255,255,.16);--texto:#f4f1ea;--suave:#b9b4a8;--destaque:#f2c86a;
+  --pn:#c6bfb2;--pnClaro:#f2ede4;--pnEsc:#5e5850;--slot:#8f887d;--slotClaro:#dcd6ca;--slotEsc:#47423c;--tx:#33302b;
+  --s:min(44px,calc((100vw - 34px)/9.4));--px:"Pixelify Sans",ui-monospace,monospace}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#1b1a1f;color:var(--texto);font-family:var(--px);touch-action:none;user-select:none;-webkit-user-select:none}
+canvas#game{position:fixed;inset:0;width:100%;height:100%;display:block}
+.vidro{background:var(--vidro);border:1px solid var(--borda);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:10px}
+button{font:inherit;color:var(--texto);cursor:pointer}
+[hidden]{display:none!important}
+/* botões em pixel (tela de título, pausa, opções) */
+.bt{display:block;width:100%;font-family:var(--px);font-size:18px;color:#f6f2e8;text-shadow:2px 2px 0 #2a2622;background:linear-gradient(#8e877c,#6f695f);border:3px solid;border-color:#c9c2b6 #3a352f #3a352f #c9c2b6;outline:2px solid #141210;padding:9px 12px;border-radius:0;cursor:pointer;image-rendering:pixelated}
+.bt:hover{background:linear-gradient(#9fb87a,#7c9a56);border-color:#d6e8b8 #3c4a2a #3c4a2a #d6e8b8}
+.bt:active{transform:translateY(1px)}
+.bt.on{background:linear-gradient(#a8c87e,#7ea050)}
+.bt.perigo:hover{background:linear-gradient(#c8786e,#a04a40);border-color:#f0c0b8 #4a1a14 #4a1a14 #f0c0b8}
+.bt.peq{font-size:15px;padding:6px 10px;width:auto;display:inline-block}
+.linha{display:flex;gap:8px}.linha>.bt{flex:1}
+#hud{position:fixed;inset:0;pointer-events:none}
+#hud button,#hud .slot{pointer-events:auto}
+body.semhud #hud>*:not(#joy):not(#acoes){visibility:hidden}
+#cross{position:absolute;left:50%;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;mix-blend-mode:difference}
+#cross:before,#cross:after{content:"";position:absolute;background:#fff}
+#cross:before{left:9px;top:0;width:2px;height:20px}#cross:after{top:9px;left:0;height:2px;width:20px}
+#topo{position:absolute;top:max(10px,env(safe-area-inset-top));left:10px;right:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+#nome{padding:6px 12px;font-size:14px}
+#nome small{display:block;color:var(--suave);font-size:11px;margin-top:2px}
+#topo .dir{display:flex;gap:6px}
+.ic{width:44px;height:44px;padding:0;font-size:19px;display:flex;align-items:center;justify-content:center;border:1px solid var(--borda)}
+.ic.on{background:var(--destaque);color:#2a2830}
+#debug{position:absolute;left:8px;top:64px;font-size:13px;line-height:1.35;color:#fff;text-shadow:1px 1px 0 #000;background:rgba(0,0,0,.35);padding:6px 8px;white-space:pre;pointer-events:none}
+#joy{position:absolute;left:max(24px,env(safe-area-inset-left));bottom:150px;width:124px;height:124px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid var(--borda);display:none}
+#knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:rgba(255,255,255,.75);box-shadow:0 2px 10px rgba(0,0,0,.3)}
+#acoes{position:absolute;right:14px;bottom:150px;width:170px;height:180px;display:none}
+#acoes button{position:absolute;border-radius:50%;width:60px;height:60px;padding:0;font-size:24px;display:flex;align-items:center;justify-content:center;border:1px solid var(--borda)}
+#acoes button.on{background:var(--destaque)}
+#bPular{right:0;bottom:0;width:72px!important;height:72px!important}
+#bMinerar{right:80px;bottom:4px}
+#bUsar{right:6px;bottom:82px}
+#bAgachar{right:150px;bottom:-14px;width:46px!important;height:46px!important;font-size:18px!important}
+#bDescer{right:84px;bottom:84px}
+body.touch #joy,body.touch #acoes{display:block}
+body:not(.voando) #bDescer,body:not(.criativo) #bVoar{display:none!important}
+/* barra de itens */
+#barra{position:absolute;left:50%;transform:translateX(-50%);bottom:max(10px,env(safe-area-inset-bottom));display:flex;align-items:flex-end;gap:6px}
+#hot{display:flex;padding:3px;background:rgba(20,18,22,.6);border:2px solid #0d0c0b;box-shadow:inset 0 0 0 2px rgba(255,255,255,.08)}
+#hot .slot{width:var(--s);height:var(--s);border:2px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05)}
+#hot .slot.sel{outline:3px solid #fff;outline-offset:-1px;z-index:1;background:rgba(255,255,255,.18);box-shadow:0 0 0 2px #000}
+#bInv{width:var(--s);height:var(--s);padding:0;font-size:18px;border-radius:6px;border:1px solid var(--borda)}
+#itemNome{position:absolute;left:50%;bottom:calc(max(10px,env(safe-area-inset-bottom)) + var(--s) + 58px);transform:translateX(-50%);font-size:17px;color:#fff;text-shadow:2px 2px 0 #3a3a3a;opacity:0;transition:opacity .4s;white-space:nowrap}
+#itemNome.on{opacity:1}
+#toast{position:absolute;left:50%;top:76px;transform:translateX(-50%);padding:8px 14px;font-size:15px;opacity:0;transition:opacity .3s;white-space:nowrap}
+#toast.on{opacity:1}
+#conq{position:absolute;right:12px;top:66px;display:flex;align-items:center;gap:10px;background:#1e1b18;border:3px solid;border-color:#6a645a #141210 #141210 #6a645a;padding:8px 12px;transform:translateX(130%);transition:transform .4s}
+#conq.on{transform:none}
+#conq canvas{width:36px;height:36px;image-rendering:pixelated}
+#conq b{color:#f2c86a;display:block;font-weight:500}
+#conq span{font-size:14px}
+/* status */
+#status{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(max(10px,env(safe-area-inset-bottom)) + var(--s) + 14px);width:calc(var(--s)*9 + 6px);display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;pointer-events:none}
+#status .lin{display:flex;gap:1px;min-height:0}
+#status .dir{justify-content:flex-end;flex-direction:row-reverse}
+#status img{width:calc(var(--s)*.42);height:calc(var(--s)*.42);image-rendering:pixelated;filter:drop-shadow(1px 1px 0 rgba(0,0,0,.7))}
+#mana{grid-column:1/-1;height:6px;background:rgba(20,18,30,.6);border:1px solid rgba(0,0,0,.6);margin-top:2px}
+#mana i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#5f8bff,#b67dff)}
+#carga2{position:absolute;left:50%;top:58%;transform:translateX(-50%);width:120px;height:6px;background:rgba(0,0,0,.5);display:none}
+#carga2 i{display:block;height:100%;background:linear-gradient(90deg,#6ab0ff,#fff)}
+.slot{position:relative;display:flex;align-items:center;justify-content:center}
+.slot canvas{width:82%;height:82%;image-rendering:pixelated;pointer-events:none}
+.slot .n{position:absolute;right:2px;bottom:0;font-size:calc(var(--s)*.38);color:#fff;text-shadow:2px 2px 0 #3a3a3a;pointer-events:none;line-height:1}
+.slot .dur{position:absolute;left:12%;right:12%;bottom:8%;height:3px;background:#111;pointer-events:none}
+.slot .dur i{display:block;height:100%}
+.slot .ph{opacity:.32;font-size:calc(var(--s)*.45);pointer-events:none}
+/* janelas de inventário */
+#janela{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:5;touch-action:none}
+.mc{background:var(--pn);color:var(--tx);padding:10px;border:3px solid;border-color:var(--pnClaro) var(--pnEsc) var(--pnEsc) var(--pnClaro);box-shadow:0 0 0 3px #1d1b18,0 18px 50px rgba(0,0,0,.5);max-height:96vh;overflow:auto;position:relative;border-radius:4px}
+.mc h4{margin:0 2px 6px;font-weight:500;font-size:17px}
+.mc .lbl{margin:8px 2px 4px;font-size:15px}
+.mc .x{position:absolute;right:8px;top:6px;background:var(--slot);color:#fff;border:2px solid;border-color:var(--slotEsc) var(--slotClaro) var(--slotClaro) var(--slotEsc);padding:0 8px;font-size:16px}
+.g{display:grid;gap:0}.g9{grid-template-columns:repeat(9,var(--s))}
+.mc .slot{width:var(--s);height:var(--s);background:var(--slot);border:2px solid;border-color:var(--slotEsc) var(--slotClaro) var(--slotClaro) var(--slotEsc);cursor:pointer}
+.mc .slot:hover{background:#a8a094}
+.mc .slot.res{width:calc(var(--s)*1.35);height:calc(var(--s)*1.35)}
+.hotsep{margin-top:8px}
+.topo{display:flex;align-items:center;justify-content:center;gap:12px;min-height:calc(var(--s)*2.2);flex-wrap:wrap}
+.seta{font-size:26px;color:var(--pnEsc);position:relative;width:40px;text-align:center}
+.seta .p{position:absolute;left:4px;top:50%;height:6px;margin-top:-3px;background:#fff;opacity:.85;width:0}
+.fogo{width:22px;height:22px;margin:4px auto;background:#5e5850;position:relative;overflow:hidden;clip-path:polygon(50% 0,85% 45%,80% 85%,50% 100%,20% 85%,15% 45%)}
+.fogo i{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(#ffdf6b,#f0702a)}
+.fcol{display:flex;flex-direction:column;align-items:center}
+.btnpx{background:var(--slot);color:#fff;border:2px solid;border-color:var(--slotClaro) var(--slotEsc) var(--slotEsc) var(--slotClaro);font-size:14px;padding:6px 10px}
+.btnpx.on{background:#6d8f4e}
+.abas{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}.abas .btnpx{padding:4px 8px;font-size:13px}
+.stats{font-size:14px;line-height:1.5;padding:0 4px}
+#receitas{display:grid;grid-template-columns:repeat(auto-fill,minmax(calc(var(--s)*2.7),1fr));gap:6px;margin-top:6px;max-height:30vh;overflow:auto}
+.rc{background:var(--slot);border:2px solid;border-color:var(--slotEsc) var(--slotClaro) var(--slotClaro) var(--slotEsc);padding:4px;display:flex;align-items:center;gap:4px;cursor:pointer;color:#fff;font-size:12px}
+.rc.falta{opacity:.45}.rc canvas{width:calc(var(--s)*.85);height:calc(var(--s)*.85);image-rendering:pixelated}.rc span{line-height:1.15}
+.rcinfo{grid-column:1/-1;font-size:13px;opacity:.8;padding:2px}
+#catalogo{max-height:min(44vh,calc(var(--s)*6));overflow:auto}
+#mao{position:fixed;width:var(--s);height:var(--s);pointer-events:none;z-index:9;margin:calc(var(--s)*-.5) 0 0 calc(var(--s)*-.5)}
+#dica{font-size:13px;opacity:.75;margin:6px 2px 0;max-width:calc(var(--s)*9)}
+#tip{position:fixed;z-index:10;pointer-events:none;background:#1a0f22;border:2px solid #4a2a7a;color:#fff;padding:6px 9px;font-size:14px;max-width:260px;display:none}
+#tip small{display:block;color:#b9b4a8;font-size:12px;margin-top:2px}
+/* overlays */
+#dor{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 120px 40px rgba(200,0,0,.55);opacity:0}
+#dor.on{animation:dor .5s ease-out}@keyframes dor{from{opacity:1}to{opacity:0}}
+#agua{position:fixed;inset:0;pointer-events:none;background:rgba(30,80,170,.35);opacity:0;transition:opacity .2s}#agua.on{opacity:1}
+#sono{position:fixed;inset:0;pointer-events:none;background:#000;opacity:0;transition:opacity 1s}#sono.on{opacity:.92}
+#vinheta{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 160px 30px rgba(0,0,0,.35)}
+/* telas cheias */
+.tela{position:fixed;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
+.tela.escura{background:rgba(8,8,12,.62);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.caixa{width:min(420px,100%);display:flex;flex-direction:column;gap:9px}
+.caixa.larga{width:min(640px,100%)}
+.tela h2{font-weight:500;font-size:26px;margin:0 0 8px;text-align:center;text-shadow:3px 3px 0 #000}
+#logo{text-align:center;margin-bottom:18px;position:relative}
+#logo h1{margin:0;font-family:var(--px);font-weight:700;font-size:clamp(38px,9vw,64px);color:#f6e2a8;letter-spacing:1px;text-shadow:0 4px 0 #8a5a1e,0 8px 0 #3a2410,0 10px 18px rgba(0,0,0,.6)}
+#logo .sub{color:#e8e0d0;text-shadow:2px 2px 0 #000;font-size:15px}
+#splash{position:absolute;right:-6px;bottom:-4px;color:#ffe84a;text-shadow:2px 2px 0 #3a3200;font-size:17px;transform:rotate(-14deg);animation:pulso .6s ease-in-out infinite alternate;white-space:nowrap}
+@keyframes pulso{from{transform:rotate(-14deg) scale(1)}to{transform:rotate(-14deg) scale(1.08)}}
+#versao{position:fixed;left:8px;bottom:6px;font-size:12px;color:#ddd;text-shadow:1px 1px 0 #000}
+#carga{height:8px;background:rgba(0,0,0,.5);border:2px solid #000;overflow:hidden;margin:4px 0}
+#carga i{display:block;height:100%;width:0;background:linear-gradient(90deg,#7ec850,#c8f08a);transition:width .2s}
+.lista{background:rgba(0,0,0,.45);border:2px solid #000;max-height:46vh;overflow:auto;display:flex;flex-direction:column}
+.mundo{display:flex;gap:10px;align-items:center;padding:10px;border-bottom:1px solid rgba(255,255,255,.08);cursor:pointer}
+.mundo.sel{background:rgba(255,255,255,.14);outline:2px solid #ddd;outline-offset:-2px}
+.mundo canvas{width:44px;height:44px;image-rendering:pixelated}
+.mundo b{font-weight:500;font-size:17px;display:block}.mundo small{color:var(--suave);font-size:13px}
+.campo{display:flex;flex-direction:column;gap:4px;font-size:15px}
+.campo input[type=text]{font-family:var(--px);font-size:17px;background:#000;color:#fff;border:2px solid #a0a0a0;padding:8px}
+.campo input[type=range]{width:100%}
+.opc{display:flex;justify-content:space-between;align-items:center;gap:10px;background:linear-gradient(#8e877c,#6f695f);border:3px solid;border-color:#c9c2b6 #3a352f #3a352f #c9c2b6;outline:2px solid #141210;padding:6px 10px;font-size:16px;text-shadow:2px 2px 0 #2a2622}
+.opc input[type=range]{flex:1;max-width:55%;accent-color:#a8c87e}
+.teclas{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;font-size:16px;background:rgba(0,0,0,.45);border:2px solid #000;padding:10px;max-height:52vh;overflow:auto}
+.teclas .bt{min-width:120px;font-size:15px;padding:5px 8px}
+.teclas .bt.esperando{background:linear-gradient(#e8c050,#c09020)}
+.conqs{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px;max-height:56vh;overflow:auto}
+.cq{display:flex;gap:8px;align-items:center;background:rgba(0,0,0,.5);border:2px solid #000;padding:6px;opacity:.45}
+.cq.ok{opacity:1;border-color:#a8c87e}
+.cq canvas{width:34px;height:34px;image-rendering:pixelated}
+.cq b{font-weight:500;display:block;font-size:15px}.cq small{font-size:12px;color:var(--suave)}
+.txt{background:rgba(0,0,0,.45);border:2px solid #000;padding:10px;font-size:15px;line-height:1.5}
+#morte{background:rgba(120,0,0,.5)}
+#morte h2{font-size:40px;color:#fff}
+
+/* botões de pixel (celular) */
+.pb{background:rgba(24,22,20,.42);border:2px solid rgba(255,255,255,.6);box-shadow:inset -3px -3px 0 rgba(0,0,0,.38),inset 3px 3px 0 rgba(255,255,255,.2),0 2px 0 rgba(0,0,0,.45);border-radius:5px;padding:0;display:flex;align-items:center;justify-content:center;color:#fff}
+.pb canvas{width:64%;height:64%;image-rendering:pixelated;pointer-events:none;filter:drop-shadow(2px 2px 0 rgba(0,0,0,.55))}
+.pb:active,.pb.on{background:rgba(255,255,255,.38);box-shadow:inset 3px 3px 0 rgba(0,0,0,.3),inset -3px -3px 0 rgba(255,255,255,.2)}
+#acoes .pb{border-radius:6px!important}
+#dpad{position:absolute;left:max(18px,env(safe-area-inset-left));bottom:calc(var(--s) + 70px);width:calc(var(--bt)*3);height:calc(var(--bt)*3);display:none;touch-action:none}
+#dpad .pb{position:absolute;width:var(--bt);height:var(--bt);pointer-events:none}
+#dpad [data-d=cima]{left:var(--bt);top:0}#dpad [data-d=baixo]{left:var(--bt);bottom:0}#dpad [data-d=esq]{left:0;top:var(--bt)}#dpad [data-d=dir]{right:0;top:var(--bt)}
+#dpad .centro{position:absolute;left:var(--bt);top:var(--bt);width:var(--bt);height:var(--bt);background:rgba(24,22,20,.25);border-radius:4px}
+body.touch.setas #dpad{display:block}body.touch.setas #joy{display:none!important}
+:root{--bt:62px}body.btp{--bt:52px}body.btg{--bt:74px}
+#acoes{width:calc(var(--bt)*2.9);height:calc(var(--bt)*3)}
+#acoes button{width:var(--bt)!important;height:var(--bt)!important}
+#bPular{right:0;bottom:0;width:calc(var(--bt)*1.15)!important;height:calc(var(--bt)*1.15)!important}
+#bMinerar{right:calc(var(--bt)*1.3);bottom:0}
+#bUsar{right:0;bottom:calc(var(--bt)*1.3)}
+#bAgachar{right:calc(var(--bt)*2.5);bottom:0;width:calc(var(--bt)*.8)!important;height:calc(var(--bt)*.8)!important}
+#bDescer{right:calc(var(--bt)*1.3);bottom:calc(var(--bt)*1.3)}
+#topo .ic{width:46px;height:46px}
+#bInv{border-radius:4px}
+/* trocas */
+.trocas{display:flex;flex-direction:column;gap:6px;max-height:42vh;overflow:auto;margin-bottom:4px}
+.tr{display:flex;align-items:center;gap:8px;background:var(--slot);border:2px solid;border-color:var(--slotEsc) var(--slotClaro) var(--slotClaro) var(--slotEsc);padding:4px 8px}
+.tr.falta{opacity:.55}.tr .btnpx{margin-left:auto}
+.ti{position:relative;width:calc(var(--s)*.95);height:calc(var(--s)*.95);display:inline-flex;align-items:center;justify-content:center}
+.ti canvas{width:100%;height:100%;image-rendering:pixelated}.ti b{position:absolute;right:0;bottom:-2px;color:#fff;text-shadow:2px 2px 0 #333;font-weight:500;font-size:calc(var(--s)*.36)}
+.tr .seta{width:auto;font-size:20px}
+#lockhint{position:absolute;left:50%;top:22%;transform:translateX(-50%);padding:6px 12px;font-size:14px;display:none}
+body.desk.jogando:not(.preso):not(.jan) #lockhint{display:block}
+</style>
+<script type="importmap">{"imports":{"three":"./three.module.js"}}</script>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="vinheta"></div>
+<div id="hud" hidden>
+  <div id="cross"></div>
+  <div id="topo">
+    <div id="nome" class="vidro">Vila dos Gatinhos<small id="info">—</small></div>
+    <div class="dir">
+      <button class="ic pb" id="bVoar" title="Voar"><canvas data-ic="asa"></canvas></button>
+      <button class="ic pb" id="bCam" title="Câmera"><canvas data-ic="olho"></canvas></button>
+      <button class="ic pb" id="bMenu" title="Pausa"><canvas data-ic="pausa"></canvas></button>
+    </div>
+  </div>
+  <div id="debug" hidden></div>
+  <div id="joy"><div id="knob"></div></div>
+  <div id="dpad"><button class="pb" data-d="cima"><canvas data-ic="cima"></canvas></button><button class="pb" data-d="esq"><canvas data-ic="esq"></canvas></button><button class="pb" data-d="dir"><canvas data-ic="dir"></canvas></button><button class="pb" data-d="baixo"><canvas data-ic="baixo"></canvas></button><div class="centro"></div></div>
+  <div id="acoes">
+    <button class="pb" id="bUsar" title="Usar / colocar"><canvas data-ic="pata"></canvas></button>
+    <button class="pb" id="bMinerar" title="Segure: quebrar / atacar"><canvas id="icAcao"></canvas></button>
+    <button class="pb" id="bDescer"><canvas data-ic="desce"></canvas></button>
+    <button class="pb" id="bPular"><canvas data-ic="pula"></canvas></button>
+    <button class="pb" id="bAgachar" title="Agachar"><canvas data-ic="agacha"></canvas></button>
+  </div>
+  <div id="carga2"><i></i></div>
+  <div id="status"><div class="lin" id="armor"></div><div class="lin dir" id="bolhas"></div><div class="lin" id="vida"></div><div class="lin dir" id="fome"></div><div id="mana" hidden><i></i></div></div>
+  <div id="itemNome"></div>
+  <div id="barra"><div id="hot"></div><button class="pb" id="bInv" title="Inventário"><canvas data-ic="mais"></canvas></button></div>
+  <div id="toast" class="vidro"></div>
+  <div id="conq"><canvas id="conqIc"></canvas><div><b>Conquista!</b><span id="conqTx"></span></div></div>
+  <div id="lockhint" class="vidro">Clique para jogar com o mouse</div>
+</div>
+<div id="dor"></div><div id="agua"></div><div id="sono"></div>
+<div id="janela" hidden></div>
+<div id="mao"></div><div id="tip"></div>
+
+<!-- TÍTULO -->
+<div id="tTitulo" class="tela">
+  <div class="caixa">
+    <div id="logo"><h1>Vila dos Gatinhos</h1><div class="sub">um mundo de blocos com gatinhos</div><div id="splash"></div></div>
+    <div id="cargaBox"><div id="carga"><i></i></div><div style="text-align:center;font-size:14px;color:#ddd" id="cargaTx">Carregando…</div></div>
+    <div id="menuTitulo" hidden style="display:flex;flex-direction:column;gap:9px">
+      <button class="bt" id="tContinuar">Continuar</button>
+      <button class="bt" id="tUm">Um jogador</button>
+      <div class="linha"><button class="bt" data-abre="tOpcoes">Opções</button><button class="bt" data-abre="tControles">Controles</button></div>
+      <button class="bt" data-abre="tConquistas">Conquistas</button>
+    </div>
+  </div>
+  <div id="versao">Vila dos Gatinhos · versão 3</div>
+</div>
+<!-- MUNDOS -->
+<div id="tMundos" class="tela escura" hidden>
+  <div class="caixa larga">
+    <h2>Escolher mundo</h2>
+    <div class="lista" id="listaMundos"></div>
+    <div class="linha"><button class="bt" id="mJogar">Jogar no mundo</button><button class="bt" id="mNovo">Criar mundo novo</button></div>
+    <div class="linha"><button class="bt perigo" id="mApagar">Apagar</button><button class="bt" data-volta>Voltar</button></div>
+    <div id="confApagar" hidden class="txt">Apagar este mundo para sempre? <div class="linha" style="margin-top:8px"><button class="bt perigo" id="mApagarSim">Apagar</button><button class="bt" id="mApagarNao">Cancelar</button></div></div>
+  </div>
+</div>
+<div id="tCriar" class="tela escura" hidden>
+  <div class="caixa">
+    <h2>Criar mundo novo</h2>
+    <label class="campo">Nome do mundo<input type="text" id="cNome" maxlength="24" value="Novo mundo"></label>
+    <label class="campo">Semente (deixe vazio para aleatória)<input type="text" id="cSemente" maxlength="24"></label>
+    <button class="bt" id="cModo">Modo: Sobrevivência</button>
+    <button class="bt" id="cVila">Vila inicial: Sim</button>
+    <div class="linha"><button class="bt" id="cCriar">Criar</button><button class="bt" data-volta>Cancelar</button></div>
+  </div>
+</div>
+<!-- PAUSA -->
+<div id="tPausa" class="tela escura" hidden>
+  <div class="caixa">
+    <h2>Jogo pausado</h2>
+    <button class="bt" id="pVoltar">Voltar ao jogo</button>
+    <div class="linha"><button class="bt" id="pSob">Sobrevivência</button><button class="bt" id="pCri">Criativo</button></div>
+    <div class="linha"><button class="bt" id="pTroca">Jogar com a gatinha</button><button class="bt" id="pSegue">Ela me segue</button></div>
+    <div class="linha"><button class="bt" id="pTempo">Virar a noite</button><button class="bt" id="pCasa">Voltar pra casa</button></div>
+    <div class="linha"><button class="bt" data-abre="tOpcoes">Opções</button><button class="bt" data-abre="tControles">Controles</button></div>
+    <button class="bt" data-abre="tConquistas">Conquistas</button>
+    <button class="bt" id="pSair">Salvar e sair para o título</button>
+  </div>
+</div>
+<!-- OPÇÕES -->
+<div id="tOpcoes" class="tela escura" hidden>
+  <div class="caixa">
+    <h2>Opções</h2>
+    <label class="opc">Campo de visão: <span id="oFovV"></span><input type="range" id="oFov" min="55" max="105"></label>
+    <label class="opc">Sensibilidade: <span id="oSensV"></span><input type="range" id="oSens" min="20" max="250"></label>
+    <label class="opc">Distância de visão: <span id="oRDV"></span><input type="range" id="oRD" min="2" max="10"></label>
+    <label class="opc">Volume: <span id="oVolV"></span><input type="range" id="oVol" min="0" max="100"></label>
+    <div class="linha"><button class="bt" id="oGraf">Gráficos: Bonito</button><button class="bt" id="oBob">Balanço: Sim</button></div>
+    <div class="linha"><button class="bt" id="oCoord">Coordenadas: Sim</button><button class="bt" id="oInvY">Inverter mouse: Não</button></div>
+    <div class="linha"><button class="bt" id="oCtrl">Controle no celular: Setas</button><button class="bt" id="oTam">Botões: Médios</button></div>
+    <button class="bt" data-volta>Pronto</button>
+  </div>
+</div>
+<!-- CONTROLES -->
+<div id="tControles" class="tela escura" hidden>
+  <div class="caixa larga">
+    <h2>Controles</h2>
+    <div class="teclas" id="listaTeclas"></div>
+    <div class="txt" id="txtToque"></div>
+    <div class="linha"><button class="bt" id="kPadrao">Restaurar padrão</button><button class="bt" data-volta>Pronto</button></div>
+  </div>
+</div>
+<!-- CONQUISTAS -->
+<div id="tConquistas" class="tela escura" hidden>
+  <div class="caixa larga">
+    <h2>Conquistas <span id="cqConta" style="font-size:16px;color:#ccc"></span></h2>
+    <div class="conqs" id="listaConq"></div>
+    <button class="bt" data-volta>Voltar</button>
+  </div>
+</div>
+<!-- MORTE -->
+<div id="morte" class="tela" hidden>
+  <div class="caixa" style="text-align:center">
+    <h2>Você desmaiou!</h2>
+    <p id="morteCausa" style="margin:0;color:#ffd9d9"></p>
+    <p style="font-size:14px;opacity:.8;margin:4px 0 10px">Seus itens ficaram no chão onde você caiu.</p>
+    <button class="bt" id="renascer">Renascer</button>
+    <button class="bt" id="morteTitulo">Tela de título</button>
+  </div>
+</div>
+<script type="module" src="./main.js"></script>
+</body>
+</html>
